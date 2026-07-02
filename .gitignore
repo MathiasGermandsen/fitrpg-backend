@@ -77,3 +77,4 @@ PublishProfiles/
 *.sqlite
 *.sqlite3
 *appsettings.json
+*ARCHITECTURE.md
