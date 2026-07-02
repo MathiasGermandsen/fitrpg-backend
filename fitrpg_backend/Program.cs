@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using fitrpg_backend.Data;
 using fitrpg_backend.Extensions;
 using fitrpg_backend.Middleware;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,13 +14,13 @@ builder.Services.AddOpenApi();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContextPool<WorkoutContext>(options =>
 {
-    options.UseNpgsql(connectionString, npgsql =>
-    {
-        npgsql.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(10),
-            errorCodesToAdd: null);
-    });
+  options.UseNpgsql(connectionString, npgsql =>
+  {
+    npgsql.EnableRetryOnFailure(
+          maxRetryCount: 5,
+          maxRetryDelay: TimeSpan.FromSeconds(10),
+          errorCodesToAdd: null);
+  });
 });
 
 // Application Services
@@ -32,24 +33,25 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
-    
-    // Auto-migrate on startup for dev
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<WorkoutContext>();
-    // We wrap this in a try-catch to avoid crashing if DB is not available yet
-    try 
-    {
-        await db.Database.MigrateAsync();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Migration failed: {ex.Message}");
-    }
+  app.MapOpenApi();
+  app.MapScalarApiReference();
+
+  // Auto-migrate on startup for dev
+  using var scope = app.Services.CreateScope();
+  var db = scope.ServiceProvider.GetRequiredService<WorkoutContext>();
+  // We wrap this in a try-catch to avoid crashing if DB is not available yet
+  try
+  {
+    await db.Database.MigrateAsync();
+  }
+  catch (Exception ex)
+  {
+    Console.WriteLine($"Migration failed: {ex.Message}");
+  }
 }
 
-app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGet("/", () => "QuestFit API is running!");
 
 app.Run();
